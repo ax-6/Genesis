@@ -7,8 +7,6 @@
 
 #include "WebView2.h"
 
-using namespace Microsoft::WRL;
-
 // Global variables
 
 // The main window class name.
@@ -27,6 +25,9 @@ static wil::com_ptr<ICoreWebView2Controller> webviewController;
 
 // Pointer to WebView window
 static wil::com_ptr<ICoreWebView2> webview;
+
+static wil::com_ptr<ICoreWebView2Controller> page_webviewController;
+static wil::com_ptr<ICoreWebView2> page_webview;
 
 int CALLBACK WinMain(
 	_In_ HINSTANCE hInstance,
@@ -106,75 +107,83 @@ int CALLBACK WinMain(
 	// Step 3 - Create a single WebView within the parent window
 	// Locate the browser and set up the environment for WebView
 	CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [hWnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
-                env->CreateCoreWebView2Controller(hWnd, 
-                    Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                        [hWnd](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
-                            if (controller) {
-                                webviewController = controller;
-                                webviewController->get_CoreWebView2(&webview);
+		Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+			[hWnd](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
 
-                                // 配置WebView2设置
-                                wil::com_ptr<ICoreWebView2Settings> settings;
-                                webview->get_Settings(&settings);
-                                settings->put_IsWebMessageEnabled(TRUE);
+				// Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
+				env->CreateCoreWebView2Controller(hWnd, Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+					[hWnd](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+						if (controller != nullptr) {
+							webviewController = controller;
+							webviewController->get_CoreWebView2(&webview);
+						}
 
-                                // 设置初始大小
-                                RECT bounds;
-                                GetClientRect(hWnd, &bounds);
-                                webviewController->put_Bounds(bounds);
+						// Add a few settings for the webview
+						// The demo step is redundant since the values are the default settings
+						wil::com_ptr<ICoreWebView2Settings> settings;
+						webview->get_Settings(&settings);
+						settings->put_IsScriptEnabled(TRUE);
+						settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+						settings->put_IsWebMessageEnabled(TRUE);
 
-                                // 加载本地HTML界面
-                                webview->Navigate(L"file:///F:/Genesis/Windows/Windows/main.html");
+						// Resize WebView to fit the bounds of the parent window
+						RECT bounds;
+						GetClientRect(hWnd, &bounds);
+						bounds.bottom = 50;
+						webviewController->put_Bounds(bounds);
 
-                                // 注册消息处理
-                                EventRegistrationToken token;
-                                webview->add_WebMessageReceived(
-                                    Callback<ICoreWebView2WebMessageReceivedEventHandler>(
-                                        [](ICoreWebView2* webview, 
-                                           ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
-                                            wil::unique_cotaskmem_string message;
-                                            args->TryGetWebMessageAsString(&message);
-                                            
-                                            // 解析导航指令
-                                            if (wcscmp(message.get(), L"nav:back") == 0) {
-                                                webview->GoBack();
-                                            }
-                                            else if (wcscmp(message.get(), L"nav:forward") == 0) {
-                                                webview->GoForward();
-                                            }
-                                            else if (wcsstr(message.get(), L"nav:to:") != nullptr) {
-                                                const wchar_t* url = message.get() + 7;
-                                                webview->Navigate(url);
-                                            }
-                                            return S_OK;
-                                        }).Get(), &token);
+						// Schedule an async task to navigate to Bing
+						webview->Navigate(L"file:///F:/Genesis/Windows/Windows/main.html");
 
-                                // 监听导航完成事件
-                                webview->add_NavigationCompleted(
-                                    Callback<ICoreWebView2NavigationCompletedEventHandler>(
-                                        [](ICoreWebView2* webview, 
-                                           ICoreWebView2NavigationCompletedEventArgs* args) -> HRESULT {
-                                            BOOL success;
-                                            args->get_IsSuccess(&success);
-                                            if (success) {
-                                                wil::unique_cotaskmem_string uri;
-                                                webview->get_Source(&uri);
-                                                
-                                                // 发送当前URL回HTML界面
-                                                std::wstring script = L"updateAddressBar('";
-                                                script += uri.get();
-                                                script += L"');";
-                                                webview->ExecuteScript(script.c_str(), nullptr);
-                                            }
-                                            return S_OK;
-                                        }).Get(), &token);
-                            }
-                            return S_OK;
-                        }).Get());
-                return S_OK;
-            }).Get());
+						webview->add_WebMessageReceived(
+							Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+								[](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
+									LPWSTR message;
+									args->TryGetWebMessageAsString(&message);
+
+									page_webview->Navigate(message);
+
+									// 释放内存
+									CoTaskMemFree(message);
+									return S_OK;
+								}).Get(),
+									nullptr);
+
+						return S_OK;
+
+					}).Get());
+
+				// Create a CoreWebView2Controller and get the associated CoreWebView2 whose parent is the main window hWnd
+				env->CreateCoreWebView2Controller(hWnd, Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+					[hWnd](HRESULT result, ICoreWebView2Controller* controller) -> HRESULT {
+						if (controller != nullptr) {
+							page_webviewController = controller;
+							page_webviewController->get_CoreWebView2(&page_webview);
+						}
+
+						// Add a few settings for the webview
+						// The demo step is redundant since the values are the default settings
+						wil::com_ptr<ICoreWebView2Settings> settings;
+						page_webview->get_Settings(&settings);
+						settings->put_IsScriptEnabled(TRUE);
+						settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+						settings->put_IsWebMessageEnabled(TRUE);
+
+						// Resize WebView to fit the bounds of the parent window
+						RECT bounds;
+						GetClientRect(hWnd, &bounds);
+						bounds.top = 50;
+						page_webviewController->put_Bounds(bounds);
+
+						// Schedule an async task to navigate to Bing
+						page_webview->Navigate(L"https://www.baidu.com");
+
+
+						return S_OK;
+
+					}).Get());
+				return S_OK;
+			}).Get());
 
 
 
@@ -203,10 +212,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_SIZE:
-		if (webviewController != nullptr) {
+		if (page_webviewController != nullptr) {
 			RECT bounds;
 			GetClientRect(hWnd, &bounds);
+			RECT page_bounds = bounds;
+
+			bounds.bottom = 50;
 			webviewController->put_Bounds(bounds);
+
+			page_bounds.top = 50;
+			page_webviewController->put_Bounds(page_bounds);
+			
 		};
 		break;
 	case WM_DESTROY:
