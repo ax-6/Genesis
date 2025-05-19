@@ -29,6 +29,75 @@ static wil::com_ptr<ICoreWebView2> webview;
 static wil::com_ptr<ICoreWebView2Controller> page_webviewController;
 static wil::com_ptr<ICoreWebView2> page_webview;
 
+void InjectNavigationScript()
+{
+	if (!page_webview) return;
+
+	// 导航栏 HTML 和 CSS
+	const wchar_t* htmlScript = LR"(
+        window.addEventListener('DOMContentLoaded', function() {
+            const navBar = document.createElement('div');
+            navBar.id = 'custom-navbar';
+            navBar.style.position = 'fixed';
+            navBar.style.top = '0';
+            navBar.style.left = '0';
+            navBar.style.width = '100%';
+            navBar.style.height = '50px';
+            navBar.style.backgroundColor = '#f0f0f0';
+            navBar.style.zIndex = '9999';
+            navBar.style.display = 'flex';
+            navBar.style.alignItems = 'center';
+            navBar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+
+            const input = document.createElement('input');
+            input.id = 'url-input';
+            input.type = 'text';
+            input.placeholder = '输入网址';
+            input.style.marginLeft = '10px';
+            input.style.padding = '5px';
+            input.style.width = '300px';
+
+            const goButton = document.createElement('button');
+            goButton.textContent = '跳转';
+            goButton.style.marginLeft = '5px';
+            goButton.style.padding = '5px 10px';
+            goButton.onclick = function() {
+                const url = input.value;
+                if (url) {
+                    window.chrome.webview.postMessage(`navigate|${url}`);
+                }
+            };
+
+            const settingsButton = document.createElement('button');
+            settingsButton.textContent = '设置';
+            settingsButton.style.marginLeft = 'auto';
+            settingsButton.style.marginRight = '10px';
+            settingsButton.onclick = function() {
+                window.chrome.webview.postMessage('open-settings');
+            };
+
+            const closeButton = document.createElement('button');
+            closeButton.textContent = '退出';
+            closeButton.style.marginRight = '10px';
+            closeButton.onclick = function() {
+                window.chrome.webview.postMessage('close');
+            };
+
+            navBar.appendChild(input);
+            navBar.appendChild(goButton);
+            navBar.appendChild(settingsButton);
+            navBar.appendChild(closeButton);
+
+            document.body.insertBefore(navBar, document.body.firstChild);
+
+            document.body.style.marginTop = '50px';
+        })();
+    )";
+
+	// 注入脚本
+	page_webview->AddScriptToExecuteOnDocumentCreated(htmlScript, nullptr);
+}
+
 int CALLBACK WinMain(
 	_In_ HINSTANCE hInstance,
 	_In_ HINSTANCE hPrevInstance,
@@ -175,8 +244,11 @@ int CALLBACK WinMain(
 						bounds.top = 50;
 						page_webviewController->put_Bounds(bounds);
 
+						InjectNavigationScript();
+
 						// Schedule an async task to navigate to Bing
 						page_webview->Navigate(L"https://www.baidu.com");
+
 
 
 						return S_OK;
