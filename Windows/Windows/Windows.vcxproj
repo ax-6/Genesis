@@ -134,8 +134,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\aq\prototype\vm.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="vm.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aqstl.h" />
+    <ClInclude Include="aqvm_init.h" />
+    <ClInclude Include="main.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
