@@ -5,6 +5,12 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-int VmStart();
+#ifdef __cplusplus
+extern "C" {
+#endif
+	int VmStart();
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -16,6 +16,8 @@
 #include "aqstl.h"
 #include "aqvm_init.h"
 
+#include "main.h"
+
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
 /*typedef struct StackNode {
@@ -7344,11 +7346,12 @@ void AddBytecodeFile(const char* file) {
 }
 
 int VmStart() {
+
   time_t start_time = clock();
 
   int argc = 2;
 
-  const char* argv[2] = {"NULL", "ADDRESS"};
+  const char* argv[2] = {"NULL", "F:/aq/prototype/aqstl.aqbc"};
 
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);

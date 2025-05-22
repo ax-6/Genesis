@@ -7,9 +7,10 @@
 #ifdef _WIN32
 #include <windows.h>
 int aqvm_win32_init() {
-  if (SetConsoleCP(CP_UTF8) == 0 || SetConsoleOutputCP(CP_UTF8) == 0) {
-    return -1;
-  }
+  //Windows GUI Program can't use.
+  //if (SetConsoleCP(CP_UTF8) == 0 || SetConsoleOutputCP(CP_UTF8) == 0) {
+    //return -1;
+  //}
 
   return 0;
 }

@@ -1529,14 +1529,14 @@ void aqstl_tanh(InternalObject args, size_t return_value) {
 
 #ifdef _WIN32
 
-extern int WindowsStart(const char* url);
+extern int WindowsStart(const char* window_class, const char* title, int length, int height, const char* url);
 
 void aqstl_GUI_CreateWindow(InternalObject args, size_t return_value) {
-    if (args.size != 1) EXIT_VM("aqstl_GUI_CreateWindow", "tanh requires 1 argument");
+    if (args.size != 5) EXIT_VM("aqstl_GUI_CreateWindow", "tanh requires 1 argument");
     if (GetOriginData(object_table + args.index[0])->type[0] != 0x05)
         EXIT_VM("aqstl_GUI_CreateWindow", "Unsupported url type.");
 
-    SetLongData(return_value,WindowsStart(GetStringData(args.index[0])));
+    SetLongData(return_value,WindowsStart(GetStringData(args.index[0]), GetStringData(args.index[1]), GetLongData(args.index[2]), GetLongData(args.index[3]), GetStringData(args.index[4])));
 }
 #endif
 
