@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vm.c" />
+    <ClCompile Include="Webview.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aqstl.h" />
